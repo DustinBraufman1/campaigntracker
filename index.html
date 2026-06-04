@@ -512,6 +512,8 @@
     vertical-align: super;
   }
   .news-headline-link:hover::after { opacity: 0.9; }
+  .news-summary a { color: #93c5fd; text-decoration: none; }
+  .news-summary a:hover { text-decoration: underline; }
 
   /* ── Map tooltip ── */
   .map-area { overflow: visible; }
@@ -1210,7 +1212,7 @@ function buildNewsPanel(raceId) {
         <span class="news-date">${item.date}</span>
       </div>
       <div class="news-headline">${hdHTML}</div>
-      ${item.summary ? `<div class="news-summary">${item.summary}</div>` : ''}
+      ${item.summary ? `<div class="news-summary">${item.summary.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : ''}
     </div>`;
   }).join('');
 }

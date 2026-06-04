@@ -85,8 +85,8 @@ function parseRSSItems(xml) {
     const pubDate = extractTag(block, 'pubDate');
     const source  = extractTag(block, 'source');
     const desc    = extractTag(block, 'description')
-      .replace(/<[^>]+>/g, '')  // strip any HTML tags
       .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+      .replace(/<[^>]+>/g, '')  // strip any HTML tags (after decoding entities)
       .slice(0, 300);
 
     const ts = pubDate ? new Date(pubDate).getTime() : 0;
