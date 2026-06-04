@@ -1,0 +1,21 @@
+name = "race-map-api"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ── KV namespace ──────────────────────────────────────────────────────────────
+# After running `wrangler kv namespace create RACE_MAP_KV`, paste the
+# returned id into the binding below.
+[[kv_namespaces]]
+binding = "RACE_MAP_KV"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# Preview KV (used by `wrangler dev`) — create with:
+# wrangler kv namespace create RACE_MAP_KV --preview
+# then paste the preview_id here
+preview_id = "REPLACE_WITH_YOUR_PREVIEW_KV_ID"
+
+# ── Cron Triggers ─────────────────────────────────────────────────────────────
+# Fires every 6 hours to refresh polls + news into KV
+[triggers]
+crons = ["0 */6 * * *"]

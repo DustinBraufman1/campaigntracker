@@ -1,0 +1,14 @@
+{
+  "name": "race-map-api",
+  "version": "1.0.0",
+  "description": "Auto-updating polls & news API for the 2026 race map — Cloudflare Workers",
+  "type": "module",
+  "scripts": {
+    "dev":      "wrangler dev",
+    "deploy":   "wrangler deploy",
+    "cf-login": "wrangler login"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
