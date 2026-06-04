@@ -8,12 +8,12 @@ compatibility_flags = ["nodejs_compat"]
 # returned id into the binding below.
 [[kv_namespaces]]
 binding = "RACE_MAP_KV"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+id = "f33c3f5b2d6c493f90642bb3137e54a5"
 
 # Preview KV (used by `wrangler dev`) — create with:
 # wrangler kv namespace create RACE_MAP_KV --preview
 # then paste the preview_id here
-preview_id = "REPLACE_WITH_YOUR_PREVIEW_KV_ID"
+preview_id = "f6101d3888da40649b00e5cae09e6f10"
 
 # ── Cron Triggers ─────────────────────────────────────────────────────────────
 # Fires every 6 hours to refresh polls + news into KV
