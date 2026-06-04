@@ -15,34 +15,38 @@
 // Keep queries specific enough to avoid junk but broad enough to catch coverage
 const RACE_QUERIES = {
   'NC-SEN': [
-    'Roy Cooper North Carolina Senate 2026',
-    'Michael Whatley North Carolina Senate 2026',
-    'North Carolina Senate race 2026',
+    'Roy Cooper Senate campaign North Carolina',
+    'Michael Whatley North Carolina Senate',
+    'NC Senate race 2026 election',
+    'North Carolina Senate primary 2026',
   ],
   'PA-01': [
-    'Brian Fitzpatrick Pennsylvania 1st district 2026',
-    'Bob Harvie Bucks County Congress 2026',
-    'PA-01 Pennsylvania congressional race 2026',
+    'Brian Fitzpatrick reelection Bucks County',
+    'Bob Harvie Pennsylvania 1st district',
+    'PA-01 Bucks County congressional election 2026',
   ],
   'NY-04': [
-    'Laura Gillen New York 4th district 2026',
-    "Anthony D'Esposito Nassau County Congress 2026",
-    'NY-04 congressional race 2026',
+    'Laura Gillen Nassau County Congress',
+    "Anthony D'Esposito reelection New York 4th",
+    'NY-04 Long Island congressional race 2026',
   ],
   'MT-01': [
-    'Aaron Flint Montana 1st district 2026',
-    'Sam Forstag Montana Congress 2026',
-    'Montana congressional race 2026 MT-01',
+    'Aaron Flint Montana Congress campaign',
+    'Sam Forstag Montana 1st district',
+    'Montana 1st congressional district election 2026',
+    'Helena Montana congressional race',
   ],
   'TX-28': [
-    'Henry Cuellar Texas 28th district 2026',
-    'Tano Tijerina Texas congressional race 2026',
-    'TX-28 Laredo congressional race 2026',
+    'Henry Cuellar indictment Texas 28th',
+    'Tano Tijerina Laredo congressional',
+    'Texas 28th district Laredo election 2026',
+    'TX-28 South Texas congressional race',
   ],
   'TX-34': [
-    'Vicente Gonzalez Texas 34th district 2026',
-    'Eric Flores Texas congressional race 2026',
-    'TX-34 Rio Grande Valley congressional 2026',
+    'Vicente Gonzalez Texas 34th reelection',
+    'Eric Flores Rio Grande Valley Congress',
+    'TX-34 Rio Grande Valley election 2026',
+    'Texas 34th district congressional race',
   ],
 };
 

@@ -1212,7 +1212,7 @@ function buildNewsPanel(raceId) {
         <span class="news-date">${item.date}</span>
       </div>
       <div class="news-headline">${hdHTML}</div>
-      ${item.summary ? `<div class="news-summary">${item.summary.replace(/<[^>]+>/g, '')}</div>` : ''}
+      ${item.summary ? `<div class="news-summary">${item.summary.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/<[^>]+>/g,'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : ''}
     </div>`;
   }).join('');
 }
