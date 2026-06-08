@@ -1,32 +1,50 @@
 /**
  * news.js
  *
- * Fetches news via a single GDELT DOC 2.0 query covering all tracked
- * candidates. One request = no rate-limit issues.
+ * Fetches from Politico, AP News, and The Hill RSS feeds — all designed
+ * for syndication and accessible from server-side without blocking.
+ * Filters articles into race buckets by keyword matching.
  */
 
-// Keywords used to bucket each article into a race
+const RSS_FEEDS = [
+  'https://rss.politico.com/congress.xml',
+  'https://feeds.apnews.com/rss/apf-politics',
+  'https://thehill.com/rss/syndicator/19110',
+];
+
 const RACE_KEYWORDS = {
-  'NC-SEN': ['north carolina senate', 'roy cooper', 'michael whatley'],
-  'PA-01':  ['fitzpatrick', 'bob harvie', 'bucks county', 'pa-01'],
+  'NC-SEN': ['north carolina senate', 'nc senate', 'roy cooper', 'michael whatley'],
+  'PA-01':  ['brian fitzpatrick', 'bob harvie', 'bucks county', 'pa-01'],
   'NY-04':  ['laura gillen', "d'esposito", 'desposito', 'nassau county', 'ny-04'],
-  'MT-01':  ['sam forstag', 'aaron flint', 'montana.*congressional', 'mt-01'],
-  'TX-28':  ['henry cuellar', 'tano tijerina', 'tx-28', 'laredo.*congress'],
-  'TX-34':  ['vicente gonzalez', 'eric flores.*texas', 'tx-34'],
+  'MT-01':  ['sam forstag', 'aaron flint', 'montana.*district', 'mt-01'],
+  'TX-28':  ['henry cuellar', 'tano tijerina', 'tx-28'],
+  'TX-34':  ['vicente gonzalez', 'eric flores', 'tx-34'],
 };
 
-// Single query covering all candidates — GDELT returns up to 25 results
-const QUERY = '"Brian Fitzpatrick" OR "Laura Gillen" OR "Sam Forstag" OR "Henry Cuellar" OR "Vicente Gonzalez" OR "North Carolina Senate" 2026';
-
-function gdeltURL() {
-  return `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(QUERY)}&mode=artlist&maxrecords=25&format=json&timespan=14d&sort=DateDesc&sourcelang=english`;
+function extractTag(xml, tag) {
+  const m = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+  return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim() : '';
 }
 
-function parseDate(seendate) {
-  if (!seendate || seendate.length < 8) return { ts: 0, label: '' };
-  const iso = `${seendate.slice(0,4)}-${seendate.slice(4,6)}-${seendate.slice(6,8)}T00:00:00Z`;
-  const ts  = new Date(iso).getTime();
-  return { ts, label: new Date(ts).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) };
+function extractAllTags(xml, tag) {
+  const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'gi');
+  const out = [];
+  let m;
+  while ((m = re.exec(xml)) !== null)
+    out.push(m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim());
+  return out;
+}
+
+function parseRSS(xml) {
+  return extractAllTags(xml, 'item').map(block => {
+    const title   = extractTag(block, 'title').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+    const link    = extractTag(block, 'link');
+    const pubDate = extractTag(block, 'pubDate');
+    const source  = extractTag(block, 'source') || '';
+    const ts      = pubDate ? new Date(pubDate).getTime() : 0;
+    const label   = ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+    return { title, url: link, source, date: label, timestamp: ts };
+  }).filter(a => a.title && a.url);
 }
 
 function assignToRace(title) {
@@ -37,27 +55,43 @@ function assignToRace(title) {
   return null;
 }
 
+async function fetchFeed(url) {
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; RaceMapBot/1.0)',
+      'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+    },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error(`${url} → ${res.status}`);
+  return res.text();
+}
+
 export async function fetchNews() {
   const output = { 'NC-SEN': [], 'PA-01': [], 'NY-04': [], 'MT-01': [], 'TX-28': [], 'TX-34': [] };
+  const seen   = new Set();
 
-  const res = await fetch(gdeltURL(), {
-    headers: { 'User-Agent': 'race-map-api/1.0' },
-    signal: AbortSignal.timeout(15000),
-  });
+  const results = await Promise.allSettled(RSS_FEEDS.map(fetchFeed));
 
-  if (!res.ok) throw new Error(`GDELT ${res.status}`);
-
-  const json     = await res.json();
-  const articles = json.articles || [];
-  const seen     = new Set();
-
-  for (const a of articles) {
-    if (!a.title || !a.url || seen.has(a.url)) continue;
-    const raceId = assignToRace(a.title);
-    if (!raceId || output[raceId].length >= 8) continue;
-    seen.add(a.url);
-    const { ts, label } = parseDate(a.seendate);
-    output[raceId].push({ headline: a.title, url: a.url, source: a.domain || 'Unknown', date: label, summary: '', timestamp: ts });
+  for (const result of results) {
+    if (result.status !== 'fulfilled') {
+      console.warn('[news] Feed failed:', result.reason.message);
+      continue;
+    }
+    for (const article of parseRSS(result.value)) {
+      if (seen.has(article.url)) continue;
+      const raceId = assignToRace(article.title);
+      if (!raceId || output[raceId].length >= 8) continue;
+      seen.add(article.url);
+      output[raceId].push({
+        headline:  article.title,
+        url:       article.url,
+        source:    article.source || new URL(article.url).hostname.replace('www.', ''),
+        date:      article.date,
+        summary:   '',
+        timestamp: article.timestamp,
+      });
+    }
   }
 
   const combined = [...output['TX-28'], ...output['TX-34']];
