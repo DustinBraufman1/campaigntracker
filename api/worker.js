@@ -103,6 +103,18 @@ export default {
     }
 
 
+    if (url.pathname === '/debug-news') {
+      const q = encodeURIComponent('"Brian Fitzpatrick" OR "Laura Gillen" OR "Henry Cuellar" OR "North Carolina Senate" 2026');
+      const apiUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=10&format=json&timespan=14d&sort=DateDesc&sourcelang=english`;
+      try {
+        const res  = await fetch(apiUrl, { headers: { 'User-Agent': 'race-map-api/1.0' }, signal: AbortSignal.timeout(10000) });
+        const text = await res.text();
+        return new Response(text, { status: res.status, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } });
+      } catch (e) {
+        return jsonResponse({ error: e.message });
+      }
+    }
+
     return jsonResponse({ error: 'Not found' }, 404);
   },
 };
