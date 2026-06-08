@@ -30,19 +30,28 @@ export async function scheduled(event, env, ctx) {
 
 async function refreshCache(env) {
   const meta = { lastFetch: null, fetchError: null };
-  try {
-    const [news, polls] = await Promise.all([fetchNews(), fetchPolls()]);
-    await Promise.all([
-      env.RACE_MAP_KV.put('race_map_news',  JSON.stringify(news)),
-      env.RACE_MAP_KV.put('race_map_polls', JSON.stringify(polls)),
-    ]);
-    meta.lastFetch = new Date().toISOString();
-    console.log('[worker] Cache refreshed at', meta.lastFetch);
-  } catch (err) {
-    meta.fetchError = err.message;
-    console.error('[worker] Refresh failed:', err.message);
+  const errors = [];
+
+  const [newsResult, pollsResult] = await Promise.allSettled([fetchNews(), fetchPolls()]);
+
+  if (newsResult.status === 'fulfilled') {
+    await env.RACE_MAP_KV.put('race_map_news', JSON.stringify(newsResult.value));
+  } else {
+    errors.push('news: ' + newsResult.reason.message);
+    console.error('[worker] News fetch failed:', newsResult.reason.message);
   }
+
+  if (pollsResult.status === 'fulfilled') {
+    await env.RACE_MAP_KV.put('race_map_polls', JSON.stringify(pollsResult.value));
+  } else {
+    errors.push('polls: ' + pollsResult.reason.message);
+    console.error('[worker] Polls fetch failed:', pollsResult.reason.message);
+  }
+
+  meta.lastFetch = new Date().toISOString();
+  if (errors.length) meta.fetchError = errors.join('; ');
   await env.RACE_MAP_KV.put('race_map_meta', JSON.stringify(meta));
+  console.log('[worker] Cache refreshed at', meta.lastFetch, errors.length ? '(with errors)' : '');
 }
 
 // ── Request handler ───────────────────────────────────────────────────────────
@@ -93,16 +102,22 @@ export default {
       return jsonResponse({ message: 'Refresh triggered — check /health in ~15 seconds' });
     }
 
-    // Temporary debug: test GDELT API fetch
+    // Temporary debug
     if (url.pathname === '/debug-rss') {
-      const testUrl = 'https://api.gdeltproject.org/api/v2/doc/doc?query=Montana+congressional+race+2026&mode=artlist&maxrecords=5&format=json&timespan=7d&sort=DateDesc&sourcelang=english';
-      try {
-        const res = await fetch(testUrl, { headers: { 'User-Agent': 'race-map-api/1.0' } });
-        const text = await res.text();
-        return jsonResponse({ status: res.status, length: text.length, preview: text.slice(0, 1000) });
-      } catch (e) {
-        return jsonResponse({ error: e.message });
+      const results = {};
+      for (const [name, testUrl] of [
+        ['gdelt', 'https://api.gdeltproject.org/api/v2/doc/doc?query=Montana+congressional+2026&mode=artlist&maxrecords=3&format=json&timespan=7d&sort=DateDesc&sourcelang=english'],
+        ['polls', 'https://projects.fivethirtyeight.com/polls-page/house_polls.csv'],
+      ]) {
+        try {
+          const res = await fetch(testUrl, { headers: { 'User-Agent': 'race-map-api/1.0' }, signal: AbortSignal.timeout(10000) });
+          const text = await res.text();
+          results[name] = { status: res.status, length: text.length, preview: text.slice(0, 200) };
+        } catch (e) {
+          results[name] = { error: e.message };
+        }
       }
+      return jsonResponse(results);
     }
 
     return jsonResponse({ error: 'Not found' }, 404);
