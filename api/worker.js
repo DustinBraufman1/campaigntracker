@@ -93,19 +93,13 @@ export default {
       return jsonResponse({ message: 'Refresh triggered — check /health in ~15 seconds' });
     }
 
-    // Temporary debug: test a single Google News RSS fetch
+    // Temporary debug: test GDELT API fetch
     if (url.pathname === '/debug-rss') {
-      const testUrl = 'https://news.google.com/rss/search?q=Montana+congressional+race+2026&hl=en-US&gl=US&ceid=US:en';
+      const testUrl = 'https://api.gdeltproject.org/api/v2/doc/doc?query=Montana+congressional+race+2026&mode=artlist&maxrecords=5&format=json&timespan=7d&sort=DateDesc&sourcelang=english';
       try {
-        const res = await fetch(testUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-            'Accept-Language': 'en-US,en;q=0.9',
-          },
-        });
+        const res = await fetch(testUrl, { headers: { 'User-Agent': 'race-map-api/1.0' } });
         const text = await res.text();
-        return jsonResponse({ status: res.status, length: text.length, preview: text.slice(0, 500) });
+        return jsonResponse({ status: res.status, length: text.length, preview: text.slice(0, 1000) });
       } catch (e) {
         return jsonResponse({ error: e.message });
       }
