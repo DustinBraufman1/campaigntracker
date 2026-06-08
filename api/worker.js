@@ -103,6 +103,27 @@ export default {
     }
 
 
+    if (url.pathname === '/debug-feeds') {
+      const feeds = [
+        'https://rss.politico.com/congress.xml',
+        'https://feeds.apnews.com/rss/apf-politics',
+        'https://thehill.com/rss/syndicator/19110',
+      ];
+      const results = {};
+      for (const feedUrl of feeds) {
+        try {
+          const res  = await fetch(feedUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RaceMapBot/1.0)' }, signal: AbortSignal.timeout(8000) });
+          const text = await res.text();
+          const titles = [...text.matchAll(/<title[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/title>|<title[^>]*>([\s\S]*?)<\/title>/gi)]
+            .map(m => (m[1] || m[2] || '').trim()).filter(t => t).slice(0, 8);
+          results[new URL(feedUrl).hostname] = { status: res.status, titles };
+        } catch (e) {
+          results[new URL(feedUrl).hostname] = { error: e.message };
+        }
+      }
+      return jsonResponse(results);
+    }
+
     if (url.pathname === '/debug-news') {
       const q = encodeURIComponent('"Brian Fitzpatrick" OR "Laura Gillen" OR "Henry Cuellar" OR "North Carolina Senate" 2026');
       const apiUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=10&format=json&timespan=14d&sort=DateDesc&sourcelang=english`;
