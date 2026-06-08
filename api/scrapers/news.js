@@ -62,16 +62,15 @@ async function fetchRaceNews(query) {
 export async function fetchNews() {
   const output = {};
 
-  await Promise.all(
-    Object.entries(RACE_QUERIES).map(async ([raceId, query]) => {
-      try {
-        output[raceId] = await fetchRaceNews(query);
-      } catch (err) {
-        console.warn(`[news] GDELT fetch failed for ${raceId}:`, err.message);
-        output[raceId] = [];
-      }
-    })
-  );
+  for (const [raceId, query] of Object.entries(RACE_QUERIES)) {
+    try {
+      output[raceId] = await fetchRaceNews(query);
+    } catch (err) {
+      console.warn(`[news] GDELT fetch failed for ${raceId}:`, err.message);
+      output[raceId] = [];
+    }
+    await new Promise(r => setTimeout(r, 6000));
+  }
 
   const combined = [...(output['TX-28'] || []), ...(output['TX-34'] || [])];
   combined.sort((a, b) => b.timestamp - a.timestamp);
