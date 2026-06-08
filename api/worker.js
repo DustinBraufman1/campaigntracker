@@ -102,19 +102,6 @@ export default {
       return jsonResponse({ message: 'Refresh triggered — check /health in ~15 seconds' });
     }
 
-    // Temporary debug — test actual news queries
-    if (url.pathname === '/debug-rss') {
-      const q = encodeURIComponent('"Henry Cuellar" OR "Vicente Gonzalez" OR "Sam Forstag" 2026 congressional');
-      const testUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=10&format=json&timespan=30d&sort=DateDesc&sourcelang=english`;
-      try {
-        const res = await fetch(testUrl, { headers: { 'User-Agent': 'race-map-api/1.0' }, signal: AbortSignal.timeout(10000) });
-        const json = await res.json();
-        const articles = (json.articles || []).map(a => ({ title: a.title, domain: a.domain, date: a.seendate }));
-        return jsonResponse({ status: res.status, count: articles.length, articles });
-      } catch (e) {
-        return jsonResponse({ error: e.message });
-      }
-    }
 
     return jsonResponse({ error: 'Not found' }, 404);
   },
