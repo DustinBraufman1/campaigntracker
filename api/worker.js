@@ -102,22 +102,18 @@ export default {
       return jsonResponse({ message: 'Refresh triggered — check /health in ~15 seconds' });
     }
 
-    // Temporary debug
+    // Temporary debug — test actual news queries
     if (url.pathname === '/debug-rss') {
-      const results = {};
-      for (const [name, testUrl] of [
-        ['gdelt', 'https://api.gdeltproject.org/api/v2/doc/doc?query=Montana+congressional+2026&mode=artlist&maxrecords=3&format=json&timespan=7d&sort=DateDesc&sourcelang=english'],
-        ['polls', 'https://projects.fivethirtyeight.com/polls-page/house_polls.csv'],
-      ]) {
-        try {
-          const res = await fetch(testUrl, { headers: { 'User-Agent': 'race-map-api/1.0' }, signal: AbortSignal.timeout(10000) });
-          const text = await res.text();
-          results[name] = { status: res.status, length: text.length, preview: text.slice(0, 200) };
-        } catch (e) {
-          results[name] = { error: e.message };
-        }
+      const q = encodeURIComponent('"Henry Cuellar" OR "Vicente Gonzalez" OR "Sam Forstag" 2026 congressional');
+      const testUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=10&format=json&timespan=30d&sort=DateDesc&sourcelang=english`;
+      try {
+        const res = await fetch(testUrl, { headers: { 'User-Agent': 'race-map-api/1.0' }, signal: AbortSignal.timeout(10000) });
+        const json = await res.json();
+        const articles = (json.articles || []).map(a => ({ title: a.title, domain: a.domain, date: a.seendate }));
+        return jsonResponse({ status: res.status, count: articles.length, articles });
+      } catch (e) {
+        return jsonResponse({ error: e.message });
       }
-      return jsonResponse(results);
     }
 
     return jsonResponse({ error: 'Not found' }, 404);
